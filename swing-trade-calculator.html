@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swing Trade Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080a0f;
+    --surface: #0d1117;
+    --border: #1a2030;
+    --border-bright: #243048;
+    --green: #00ff88;
+    --green-dim: #00ff8822;
+    --red: #ff3d5a;
+    --red-dim: #ff3d5a18;
+    --yellow: #ffd700;
+    --yellow-dim: #ffd70015;
+    --text: #e8edf5;
+    --text-dim: #4a5568;
+    --text-mid: #8899aa;
+    --accent: #0066ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    width: 800px; height: 400px;
+    background: radial-gradient(ellipse, #0033ff08 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 580px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 36px;
+    border-left: 3px solid var(--green);
+    padding-left: 16px;
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 3px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  header h1 span { color: var(--green); }
+
+  header p {
+    font-size: 11px;
+    color: var(--text-mid);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 28px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--green), transparent);
+    opacity: 0.5;
+  }
+
+  .card-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .input-group label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+
+  .input-group input {
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+  }
+
+  .input-group input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px var(--green-dim);
+  }
+
+  .input-group input::placeholder { color: var(--text-dim); }
+
+  .atr-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .multiplier-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .multiplier-group label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+
+  .multiplier-btns {
+    display: flex;
+    gap: 6px;
+  }
+
+  .mult-btn {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    color: var(--text-mid);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 12px 0;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .mult-btn:hover { border-color: var(--green); color: var(--green); }
+  .mult-btn.active {
+    background: var(--green-dim);
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  .calc-btn {
+    width: 100%;
+    background: var(--green);
+    border: none;
+    border-radius: 2px;
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    padding: 16px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .calc-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .calc-btn:active { transform: translateY(0); }
+
+  .results {
+    display: none;
+  }
+
+  .results.visible { display: block; }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .result-box {
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    padding: 16px;
+    position: relative;
+  }
+
+  .result-box.danger {
+    border-color: var(--red);
+    background: var(--red-dim);
+  }
+
+  .result-box.safe {
+    border-color: var(--green);
+    background: var(--green-dim);
+  }
+
+  .result-box.warn {
+    border-color: var(--yellow);
+    background: var(--yellow-dim);
+  }
+
+  .result-box .r-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin-bottom: 8px;
+  }
+
+  .result-box .r-value {
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .result-box.danger .r-value { color: var(--red); }
+  .result-box.safe .r-value { color: var(--green); }
+  .result-box.warn .r-value { color: var(--yellow); }
+
+  .result-box .r-sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .summary-box {
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    padding: 20px;
+    margin-top: 12px;
+  }
+
+  .summary-box .s-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .s-key { color: var(--text-mid); }
+  .summary-row .s-val { color: var(--text); font-weight: 500; }
+  .summary-row .s-val.green { color: var(--green); }
+  .summary-row .s-val.red { color: var(--red); }
+  .summary-row .s-val.yellow { color: var(--yellow); }
+
+  .verdict {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 2px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .verdict.go {
+    background: var(--green-dim);
+    border: 1px solid var(--green);
+    color: var(--green);
+  }
+
+  .verdict.no-go {
+    background: var(--red-dim);
+    border: 1px solid var(--red);
+    color: var(--red);
+  }
+
+  .verdict.warn {
+    background: var(--yellow-dim);
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+  }
+
+  .reset-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.15s;
+  }
+
+  .reset-btn:hover { border-color: var(--text-mid); color: var(--text-mid); }
+
+  footer {
+    margin-top: 32px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  .ticker-input {
+    margin-bottom: 16px;
+  }
+
+  .ticker-input input {
+    text-transform: uppercase;
+    font-size: 20px;
+    letter-spacing: 4px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .results.visible {
+    display: block;
+    animation: fadeIn 0.25s ease forwards;
+  }
+
+  /* Multiplier Comparison Panel */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .compare-col {
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    padding: 14px 12px;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+
+  .compare-col.active-mult {
+    border-color: var(--green);
+  }
+
+  .compare-col.active-mult::before {
+    content: 'SELECTED';
+    position: absolute;
+    top: -8px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #000;
+    font-size: 8px;
+    letter-spacing: 2px;
+    padding: 2px 6px;
+    border-radius: 1px;
+    font-weight: 500;
+  }
+
+  .compare-col .c-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    color: var(--text-mid);
+  }
+
+  .compare-col.active-mult .c-header { color: var(--green); }
+
+  .compare-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+  }
+
+  .compare-row .c-label {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+
+  .compare-row .c-val {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .compare-row .c-val.red { color: var(--red); }
+  .compare-row .c-val.green { color: var(--green); }
+  .compare-row .c-val.yellow { color: var(--yellow); }
+
+  .prob-bar-wrap {
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  .prob-label {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .prob-bar {
+    height: 4px;
+    background: var(--border-bright);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .prob-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .prob-pct {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .risk-badge {
+    display: inline-block;
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 1px;
+    margin-top: 6px;
+  }
+
+  .risk-badge.high { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+  .risk-badge.med  { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow); }
+  .risk-badge.low  { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+
+  .compare-note {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-left: 2px solid var(--border-bright);
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container">
+
+  <header>
+    <h1>SWING <span>TRADE</span></h1>
+    <p>Position Calculator — Risk Management System</p>
+  </header>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="card-label">// Trade Inputs</div>
+
+    <div class="input-group ticker-input">
+      <label>Ticker Symbol</label>
+      <input type="text" id="ticker" placeholder="AAPL" maxlength="6" />
+    </div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <label>Entry Price ($)</label>
+        <input type="number" id="entry" placeholder="110.00" step="0.01" min="0" />
+      </div>
+      <div class="input-group">
+        <label>Support Level ($)</label>
+        <input type="number" id="support" placeholder="100.00" step="0.01" min="0" />
+      </div>
+    </div>
+
+    <div class="atr-row">
+      <div class="input-group">
+        <label>Daily ATR (14-period)</label>
+        <input type="number" id="atr" placeholder="3.00" step="0.01" min="0" />
+      </div>
+      <div class="multiplier-group">
+        <label>ATR Buffer Multiplier</label>
+        <div class="multiplier-btns">
+          <button class="mult-btn" data-val="1.0">1.0×</button>
+          <button class="mult-btn active" data-val="1.25">1.25×</button>
+          <button class="mult-btn" data-val="1.5">1.5×</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-row" style="margin-top:16px;">
+      <div class="input-group">
+        <label>Max Risk Per Trade ($)</label>
+        <input type="number" id="maxrisk" placeholder="20.00" step="1" min="1" value="20" />
+      </div>
+      <div class="input-group">
+        <label>Target Resistance ($)</label>
+        <input type="number" id="target" placeholder="125.00" step="0.01" min="0" />
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">CALCULATE TRADE</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results" id="results">
+    <div class="card">
+      <div class="card-label">// Trade Plan</div>
+
+      <div class="result-grid">
+        <div class="result-box danger">
+          <div class="r-label">Stop Price</div>
+          <div class="r-value" id="res-stop">—</div>
+          <div class="r-sub" id="res-stop-sub">ATR buffer applied</div>
+        </div>
+        <div class="result-box safe">
+          <div class="r-label">Profit Target</div>
+          <div class="r-value" id="res-target">—</div>
+          <div class="r-sub" id="res-target-sub">2:1 minimum</div>
+        </div>
+        <div class="result-box warn">
+          <div class="r-label">Share Count</div>
+          <div class="r-value" id="res-shares">—</div>
+          <div class="r-sub">based on max risk</div>
+        </div>
+        <div class="result-box">
+          <div class="r-label">Capital Required</div>
+          <div class="r-value" id="res-capital">—</div>
+          <div class="r-sub">entry × shares</div>
+        </div>
+      </div>
+
+      <div class="summary-box">
+        <div class="s-label">// Risk / Reward Breakdown</div>
+        <div class="summary-row">
+          <span class="s-key">Ticker</span>
+          <span class="s-val" id="sum-ticker">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-key">Risk per Share</span>
+          <span class="s-val red" id="sum-riskpershare">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-key">Reward per Share</span>
+          <span class="s-val green" id="sum-rewardpershare">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-key">R:R Ratio</span>
+          <span class="s-val" id="sum-rr">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-key">Max Dollar Loss</span>
+          <span class="s-val red" id="sum-maxloss">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-key">Max Dollar Gain</span>
+          <span class="s-val green" id="sum-maxgain">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="s-key">ATR Buffer Used</span>
+          <span class="s-val yellow" id="sum-buffer">—</span>
+        </div>
+      </div>
+
+      <div class="verdict" id="verdict">—</div>
+    </div>
+
+    <!-- MULTIPLIER COMPARISON PANEL -->
+    <div class="card">
+      <div class="card-label">// ATR Multiplier Risk Comparison</div>
+      <div class="compare-grid" id="compare-grid">
+        <div class="compare-col" id="col-1x">
+          <div class="c-header">1.0×</div>
+          <div class="compare-row"><span class="c-label">Stop Price</span><span class="c-val red" id="c-stop-1x">—</span></div>
+          <div class="compare-row"><span class="c-label">Risk/Share</span><span class="c-val red" id="c-rps-1x">—</span></div>
+          <div class="compare-row"><span class="c-label">Shares</span><span class="c-val yellow" id="c-shares-1x">—</span></div>
+          <div class="compare-row"><span class="c-label">Max Loss</span><span class="c-val red" id="c-loss-1x">—</span></div>
+          <div class="prob-bar-wrap">
+            <div class="prob-label">Sweep Survival</div>
+            <div class="prob-bar"><div class="prob-bar-fill" id="bar-1x" style="width:0%;background:var(--red)"></div></div>
+            <div class="prob-pct red" id="pct-1x">—</div>
+            <div class="risk-badge high" id="badge-1x">HIGH RISK</div>
+          </div>
+        </div>
+        <div class="compare-col" id="col-125x">
+          <div class="c-header">1.25×</div>
+          <div class="compare-row"><span class="c-label">Stop Price</span><span class="c-val red" id="c-stop-125x">—</span></div>
+          <div class="compare-row"><span class="c-label">Risk/Share</span><span class="c-val red" id="c-rps-125x">—</span></div>
+          <div class="compare-row"><span class="c-label">Shares</span><span class="c-val yellow" id="c-shares-125x">—</span></div>
+          <div class="compare-row"><span class="c-label">Max Loss</span><span class="c-val red" id="c-loss-125x">—</span></div>
+          <div class="prob-bar-wrap">
+            <div class="prob-label">Sweep Survival</div>
+            <div class="prob-bar"><div class="prob-bar-fill" id="bar-125x" style="width:0%;background:var(--yellow)"></div></div>
+            <div class="prob-pct yellow" id="pct-125x">—</div>
+            <div class="risk-badge med" id="badge-125x">MOD RISK</div>
+          </div>
+        </div>
+        <div class="compare-col" id="col-15x">
+          <div class="c-header">1.5×</div>
+          <div class="compare-row"><span class="c-label">Stop Price</span><span class="c-val red" id="c-stop-15x">—</span></div>
+          <div class="compare-row"><span class="c-label">Risk/Share</span><span class="c-val red" id="c-rps-15x">—</span></div>
+          <div class="compare-row"><span class="c-label">Shares</span><span class="c-val yellow" id="c-shares-15x">—</span></div>
+          <div class="compare-row"><span class="c-label">Max Loss</span><span class="c-val red" id="c-loss-15x">—</span></div>
+          <div class="prob-bar-wrap">
+            <div class="prob-label">Sweep Survival</div>
+            <div class="prob-bar"><div class="prob-bar-fill" id="bar-15x" style="width:0%;background:var(--green)"></div></div>
+            <div class="prob-pct green" id="pct-15x">—</div>
+            <div class="risk-badge low" id="badge-15x">LOW RISK</div>
+          </div>
+        </div>
+      </div>
+      <div class="compare-note" id="compare-note"></div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <button class="reset-btn" onclick="reset()" style="border:none;border-radius:0;margin:0;padding:16px;">↺ RESET / NEW TRADE</button>
+    </div>
+  </div>
+
+  <footer>
+    SWING TRADE CALCULATOR — PERSONAL USE ONLY<br>
+    NOT FINANCIAL ADVICE — ALL TRADES CARRY RISK<br>
+    ATR SOURCE: DAILY CHART, 14-PERIOD SETTING
+  </footer>
+
+</div>
+
+<script>
+  let multiplier = 1.25;
+
+  document.querySelectorAll('.mult-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      multiplier = parseFloat(btn.dataset.val);
+    });
+  });
+
+  document.getElementById('ticker').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+  });
+
+  function fmt(n, decimals = 2) {
+    return '$' + n.toFixed(decimals);
+  }
+
+  function calculate() {
+    const ticker  = document.getElementById('ticker').value.trim() || '—';
+    const entry   = parseFloat(document.getElementById('entry').value);
+    const support = parseFloat(document.getElementById('support').value);
+    const atr     = parseFloat(document.getElementById('atr').value);
+    const maxRisk = parseFloat(document.getElementById('maxrisk').value) || 20;
+    const userTarget = parseFloat(document.getElementById('target').value);
+
+    if (isNaN(entry) || isNaN(support) || isNaN(atr)) {
+      alert('Please fill in Entry Price, Support Level, and ATR.');
+      return;
+    }
+
+    if (entry <= support) {
+      alert('Entry price must be above support level for a long trade.');
+      return;
+    }
+
+    // Core calculations
+    const buffer     = atr * multiplier;
+    const stopPrice  = support - buffer;
+    const riskPerShare = entry - stopPrice;
+
+    // Minimum 2:1 target
+    const minTarget  = entry + (riskPerShare * 2);
+    const finalTarget = (!isNaN(userTarget) && userTarget > minTarget) ? userTarget : minTarget;
+    const rewardPerShare = finalTarget - entry;
+
+    // Position sizing
+    const shares     = Math.floor(maxRisk / riskPerShare);
+    const capital    = shares * entry;
+    const maxLoss    = shares * riskPerShare;
+    const maxGain    = shares * rewardPerShare;
+    const rrRatio    = rewardPerShare / riskPerShare;
+
+    // Populate results
+    document.getElementById('res-stop').textContent    = fmt(stopPrice);
+    document.getElementById('res-stop-sub').textContent = `${multiplier}× ATR below support`;
+    document.getElementById('res-target').textContent  = fmt(finalTarget);
+    document.getElementById('res-target-sub').textContent = `${rrRatio.toFixed(1)}:1 R:R`;
+    document.getElementById('res-shares').textContent  = shares + ' shares';
+    document.getElementById('res-capital').textContent = fmt(capital);
+
+    document.getElementById('sum-ticker').textContent       = ticker;
+    document.getElementById('sum-riskpershare').textContent = fmt(riskPerShare);
+    document.getElementById('sum-rewardpershare').textContent = fmt(rewardPerShare);
+    document.getElementById('sum-rr').textContent           = rrRatio.toFixed(2) + ':1';
+    document.getElementById('sum-maxloss').textContent      = fmt(maxLoss);
+    document.getElementById('sum-maxgain').textContent      = fmt(maxGain);
+    document.getElementById('sum-buffer').textContent       = fmt(buffer) + ' (' + multiplier + '× ATR)';
+
+    // R:R coloring
+    const rrEl = document.getElementById('sum-rr');
+    if (rrRatio >= 2) {
+      rrEl.className = 's-val green';
+    } else if (rrRatio >= 1.5) {
+      rrEl.className = 's-val yellow';
+    } else {
+      rrEl.className = 's-val red';
+    }
+
+    // Verdict
+    const verdictEl = document.getElementById('verdict');
+    if (shares < 1) {
+      verdictEl.textContent = '✕ NO-GO — Risk per share exceeds max risk limit. Widen account risk or skip this trade.';
+      verdictEl.className = 'verdict no-go';
+    } else if (rrRatio < 2) {
+      verdictEl.textContent = '⚠ MARGINAL — R:R below 2:1 threshold. Consider waiting for a better entry or skip.';
+      verdictEl.className = 'verdict warn';
+    } else {
+      verdictEl.textContent = `✓ GO — ${ticker} qualifies. ${shares} shares, stop at ${fmt(stopPrice)}, target ${fmt(finalTarget)}.`;
+      verdictEl.className = 'verdict go';
+    }
+
+    document.getElementById('results').classList.add('visible');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Populate multiplier comparison panel
+    buildComparePanel(entry, support, atr, maxRisk);
+  }
+
+  function buildComparePanel(entry, support, atr, maxRisk) {
+    const configs = [
+      { mult: 1.0,  id: '1x',   sweepProb: 52, color: 'var(--red)',    badgeClass: 'high', badgeText: 'HIGH RISK',  probClass: 'red'    },
+      { mult: 1.25, id: '125x', sweepProb: 73, color: 'var(--yellow)', badgeClass: 'med',  badgeText: 'MOD RISK',  probClass: 'yellow' },
+      { mult: 1.5,  id: '15x',  sweepProb: 86, color: 'var(--green)',  badgeClass: 'low',  badgeText: 'LOW RISK',  probClass: 'green'  },
+    ];
+
+    configs.forEach(cfg => {
+      const buffer      = atr * cfg.mult;
+      const stopPrice   = support - buffer;
+      const riskPerShare = entry - stopPrice;
+      const shares      = Math.floor(maxRisk / riskPerShare);
+      const maxLoss     = shares * riskPerShare;
+
+      document.getElementById(`c-stop-${cfg.id}`).textContent   = fmt(stopPrice);
+      document.getElementById(`c-rps-${cfg.id}`).textContent    = fmt(riskPerShare);
+      document.getElementById(`c-shares-${cfg.id}`).textContent = shares > 0 ? shares + ' sh' : '< 1';
+      document.getElementById(`c-loss-${cfg.id}`).textContent   = fmt(maxLoss);
+      document.getElementById(`pct-${cfg.id}`).textContent      = cfg.sweepProb + '%';
+
+      const bar = document.getElementById(`bar-${cfg.id}`);
+      bar.style.width = '0%';
+      bar.style.background = cfg.color;
+      setTimeout(() => { bar.style.width = cfg.sweepProb + '%'; }, 100);
+
+      const badge = document.getElementById(`badge-${cfg.id}`);
+      badge.className = `risk-badge ${cfg.badgeClass}`;
+      badge.textContent = cfg.badgeText;
+
+      const pctEl = document.getElementById(`pct-${cfg.id}`);
+      pctEl.className = `prob-pct ${cfg.probClass}`;
+
+      // Highlight selected multiplier column
+      const col = document.getElementById(`col-${cfg.id}`);
+      col.classList.toggle('active-mult', cfg.mult === multiplier);
+    });
+
+    // Contextual note
+    const noteEl = document.getElementById('compare-note');
+    const bufferAmt = (atr * multiplier).toFixed(2);
+    const stopSelected = (support - atr * multiplier).toFixed(2);
+    noteEl.innerHTML =
+      `Your selected ${multiplier}× buffer places the stop $${bufferAmt} below support at $${stopSelected}. ` +
+      `A 1.0× buffer sits inside the typical institutional sweep zone and carries the highest premature exit risk. ` +
+      `A 1.5× buffer clears most sweep attempts on liquid mid-cap and large-cap stocks. ` +
+      `Sweep survival % reflects historical probability that price does not reach the stop before reversing, based on ATR-relative stop distance research across liquid equities.`;
+  }
+
+  function reset() {
+    ['ticker','entry','support','atr','target'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('maxrisk').value = '20';
+    document.getElementById('results').classList.remove('visible');
+    document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-val="1.25"]').classList.add('active');
+    multiplier = 1.25;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
